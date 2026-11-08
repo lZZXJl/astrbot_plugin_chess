@@ -1,0 +1,6 @@
+name: astrbot_plugin_chess
+display_name: 网页棋盘
+desc: 简单的国际象棋插件，让你能和你的 AI 一同在本地网页上下国际象棋，网页适配聊天，简单轻量。
+version: 0.1.0
+author: lzzxjl
+repo: ""

@@ -1,0 +1,22 @@
+{
+  "web_enabled": {
+    "description": "开启网页棋盘",
+    "type": "bool",
+    "default": true
+  },
+  "web_host": {
+    "description": "监听地址，0.0.0.0 表示局域网可访问",
+    "type": "string",
+    "default": "0.0.0.0"
+  },
+  "web_port": {
+    "description": "端口",
+    "type": "int",
+    "default": 8765
+  },
+  "owner_id": {
+    "description": "网页消息要注入到哪个 QQ 会话",
+    "type": "string",
+    "default": ""
+  }
+}
