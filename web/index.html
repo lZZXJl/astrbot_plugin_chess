@@ -229,6 +229,14 @@ async function pollEvents(){
   try{
     const r=await fetch(`/api/events?since=${seq}`);
     const d=await r.json();
+    // 服务端重启后序号会从头来，本地 seq 偏大就会一直拉到空
+    if(typeof d.seq==="number" && d.seq<seq){
+      seq=0;
+      const r2=await fetch("/api/events?since=0");
+      const d2=await r2.json();
+      (d2.messages||[]).forEach(m=>{ addMsg(m); seq=Math.max(seq,m.id); });
+      return;
+    }
     (d.messages||[]).forEach(m=>{ addMsg(m); seq=Math.max(seq,m.id); });
   }catch(e){}
 }

@@ -18,5 +18,10 @@
     "description": "网页消息要注入到哪个 QQ 会话",
     "type": "string",
     "default": ""
+  },
+  "redirect_to_web": {
+    "description": "把模型回复改投到网页消息区，聊天侧不再发送（仅对 owner_id 的私聊生效）",
+    "type": "bool",
+    "default": true
   }
 }

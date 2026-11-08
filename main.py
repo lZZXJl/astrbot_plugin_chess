@@ -41,7 +41,7 @@ def _lan_ip() -> str:
         return "127.0.0.1"
 
 
-@register("chess_board", "lzzxjl", "网页棋盘，横屏当输入法用", "0.1.0")
+@register("chess_board", "lzzxjl", "网页棋盘，横屏当输入法用", "0.2.0")
 class ChessPlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):
         super().__init__(context)
@@ -144,6 +144,37 @@ class ChessPlugin(Star):
         if self.server:
             self.server.push_message("system", "新开一局")
         yield event.plain_result("开好了，你执白先走。")
+
+    # ---------- 回复改道 ----------
+    @filter.on_decorating_result()
+    async def redirect_reply_to_web(self, event: AstrMessageEvent):
+        """把本该回到聊天的模型回复搬到网页消息区，聊天侧不再发送。
+
+        只处理 owner_id 的私聊会话，且只拦纯文本的 LLM 回复；
+        指令回执、含图片等非文本内容的结果仍照常发出。
+        """
+        if not self.server or not self.config.get("redirect_to_web", True):
+            return
+        if not self._owner_id or not event.is_private_chat():
+            return
+        if str(event.get_sender_id()) != self._owner_id:
+            return
+        result = event.get_result()
+        if not result or not result.chain or not result.is_llm_result():
+            return
+        if any(not isinstance(comp, Plain) for comp in result.chain):
+            return
+        text = "\n".join(
+            comp.text for comp in result.chain if comp.text and comp.text.strip()
+        ).strip()
+        if not text:
+            return
+        try:
+            self.server.push_message("bot", text)
+        except Exception as e:
+            logger.error(f"[chess] 回复改投网页失败，照常发到聊天：{e}")
+            return
+        event.clear_result()
 
     # ---------- LLM 工具 ----------
     @filter.llm_tool(name="chess_state")

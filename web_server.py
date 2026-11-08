@@ -145,6 +145,9 @@ class ChessWebServer:
             since = int(request.query.get("since", "0"))
         except ValueError:
             since = 0
+        if since > self._msg_seq:
+            # 页面拿着旧序号来了（服务重启过），给它整份，别再空转
+            since = 0
         items = [m for m in self.game.chat if m["id"] > since]
         return web.json_response({"messages": items, "seq": self._msg_seq})
 
