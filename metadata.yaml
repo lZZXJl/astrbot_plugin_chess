@@ -1,5 +1,5 @@
 name: astrbot_plugin_chess
-display_name: 网页棋盘
+display_name: 网页棋盘(国际象棋)
 short_desc: 在本地网页上下国际象棋，棋盘旁边还能和 AI 聊天
 desc: |
   在你自己的设备上开一个轻量网页，用图形棋盘和 AI 对弈；每一步都回流到

@@ -1,6 +1,6 @@
-# astrbot_plugin_chess
+# 网页棋盘(国际象棋)
 
-**网页棋盘 —— 把浏览器当作国际象棋输入法**
+`astrbot_plugin_chess` —— 把浏览器当作国际象棋输入法
 
 基于 [AstrBot](https://github.com/AstrBotDevs/AstrBot) 的国际象棋插件。在本地启动一个轻量网页，用图形化棋盘完成走子，每一步的操作结果通过 AstrBot 消息管线回流到聊天会话，由大语言模型接管对话与应手。棋盘规则由 [python-chess](https://github.com/niklasf/python-chess) 维护，插件本身不实现任何棋规判断。
 
