@@ -10,8 +10,8 @@ desc: |
   - 网页适配手机横屏，可当输入法用
   - 网页聊天区与 QQ 侧共用同一局棋和同一段对话
   - 附带 chess_state / chess_move / chess_new / chess_undo 四个 LLM 工具
-version: 0.2.0
-author: lzzxjl
+version: 0.2.1
+author: lZZXJl
 repo: "https://github.com/lZZXJl/astrbot_plugin_chess"
 support_platforms:
   - aiocqhttp

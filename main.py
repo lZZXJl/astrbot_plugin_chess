@@ -49,6 +49,20 @@ class ChessPlugin(Star):
         self.game = ChessGame()
         self.server: ChessWebServer | None = None
         self._owner_id = str(self.config.get("owner_id", "") or "")
+        # 网页那条线只在“刚有人在这边动过”的一小段时间里生效；
+        # 平时聊天就该老老实实回到 QQ，别被搬走。
+        self._web_until = 0.0
+
+    def _touch_web(self):
+        """标记网页/棋局这条线还热着。"""
+        try:
+            window = int(self.config.get("web_reply_window", 180) or 180)
+        except Exception:
+            window = 180
+        self._web_until = time.time() + max(60, window)
+
+    def _web_is_hot(self) -> bool:
+        return time.time() <= self._web_until
 
     # ---------- 生命周期 ----------
     async def initialize(self):
@@ -118,6 +132,7 @@ class ChessPlugin(Star):
             return False
 
     async def _on_web_move(self, move: str, san: str):
+        self._touch_web()
         if self.game.result:
             text = f"（网页棋盘）我刚走了 {san}，这局已经结束了：{self.game.result}。要是还想下，开新的。"
         else:
@@ -128,6 +143,7 @@ class ChessPlugin(Star):
         await self._inject(text)
 
     async def _on_web_chat(self, text: str):
+        self._touch_web()
         await self._inject(f"（网页聊天）{text}")
 
     # ---------- 聊天指令 ----------
@@ -135,12 +151,14 @@ class ChessPlugin(Star):
     async def show_board(self, event: AstrMessageEvent):
         """看当前棋局。"""
         url = f"http://{_lan_ip()}:{int(self.config.get('web_port', 8765) or 8765)}"
+        self._touch_web()
         yield event.plain_result(f"{self.game.render_text()}\n网页棋盘：{url}")
 
     @filter.command("新局")
     async def new_game(self, event: AstrMessageEvent):
         """开一局新的，默认我执黑。"""
         self.game.reset(player_side="white")
+        self._touch_web()
         if self.server:
             self.server.push_message("system", "新开一局")
         yield event.plain_result("开好了，你执白先走。")
@@ -158,6 +176,10 @@ class ChessPlugin(Star):
         if not self._owner_id or not event.is_private_chat():
             return
         if str(event.get_sender_id()) != self._owner_id:
+            return
+        # 只有网页那边刚动过（走子、网页说话、用了棋类指令）才改道，
+        # 否则一律正常发回 QQ，避免把日常聊天搬进棋盘页面。
+        if not self._web_is_hot():
             return
         result = event.get_result()
         if not result or not result.chain or not result.is_llm_result():
@@ -199,6 +221,7 @@ class ChessPlugin(Star):
         Returns:
             string: 结果
         """
+        self._touch_web()
         ok, msg = self.game.try_move_any(move)
         if not ok:
             return f"这步没走成：{msg}"
@@ -218,6 +241,7 @@ class ChessPlugin(Star):
         Returns:
             string: 结果
         """
+        self._touch_web()
         self.game.reset(player_side=side if side in ("white", "black") else "white")
         if self.server:
             self.server.push_message("system", "新开一局")
@@ -232,5 +256,6 @@ class ChessPlugin(Star):
         Returns:
             string: 结果
         """
+        self._touch_web()
         n = self.game.undo(int(plies))
         return f"退了 {n} 步。{self.game.render_text()}" if n else "没得退了。"

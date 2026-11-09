@@ -23,5 +23,10 @@
     "description": "把模型回复改投到网页消息区，聊天侧不再发送（仅对 owner_id 的私聊生效）",
     "type": "bool",
     "default": true
+  },
+  "web_reply_window": {
+    "description": "网页改道只在这段时间内生效（秒，网页走子或聊天后重新计时）",
+    "type": "int",
+    "default": 180
   }
 }
