@@ -7,10 +7,12 @@ desc: |
 
   特点：
   - 棋盘规则由 python-chess 维护，插件本身不实现任何棋规
+  - 六套棋盘配色、三种棋子样式，随手切换，选择记在浏览器里
   - 网页适配手机横屏，可当输入法用
   - 网页聊天区与 QQ 侧共用同一局棋和同一段对话
+  - 选执黑开局时 AI 自动先走第一步，不用再催
   - 附带 chess_state / chess_move / chess_new / chess_undo 四个 LLM 工具
-version: 0.2.1
+version: 0.2.2
 author: lZZXJl
 repo: "https://github.com/lZZXJl/astrbot_plugin_chess"
 support_platforms:

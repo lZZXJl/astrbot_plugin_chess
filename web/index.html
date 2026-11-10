@@ -3,9 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
 <title>棋盘</title>
 <style>
+  html{
+    -webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;
+  }
+  html,body{font-size:13px;font-synthesis:none}
   :root{
+    --fs:13px;--ui:1;
     --bg:#0d1520;
     --panel:#131e2b;
     --line:#22344a;
@@ -14,12 +20,46 @@
     --accent:#5fb3d4;
     --text:#cfe0ee;
     --dim:#6b8098;
+    --input:#0b1420;
+    --btn:#1b2d3f;
+    --user:#9fd8ef;
+    --bot:#e6eef6;
+    --mark:rgba(30,60,80,.45);
+    --last:rgba(95,179,212,.22);
   }
+  /* 界面配色：按 body[data-bg] 覆盖整站底色 */
+  body[data-bg="black"]{
+    --bg:#050607;--panel:#0c0e11;--line:#1b1f25;--text:#c9d4de;--dim:#5a6673;
+    --input:#0a0c0f;--btn:#161a20;--user:#8fc9e0;--bot:#dde5ec;
+    --mark:rgba(0,0,0,.5);--last:rgba(95,179,212,.18);
+  }
+  body[data-bg="night"]{
+    --bg:#120f1e;--panel:#191531;--line:#2c2547;--text:#d5cfe8;--dim:#6f6690;
+    --input:#100d1a;--btn:#221c3c;--user:#b9a6f0;--bot:#e7e2f7;
+    --mark:rgba(40,30,70,.5);--last:rgba(150,120,240,.2);
+  }
+  body[data-bg="moss"]{
+    --bg:#0a1411;--panel:#101d18;--line:#1e332b;--text:#cfe4da;--dim:#66857a;
+    --input:#08120f;--btn:#16281f;--user:#8fd6b6;--bot:#e3f0ea;
+    --mark:rgba(20,50,40,.5);--last:rgba(110,200,160,.2);
+  }
+  body[data-bg="paper"]{
+    --bg:#eef0f3;--panel:#f8f9fb;--line:#d5dae2;--text:#2b3a48;--dim:#7b8794;
+    --input:#ffffff;--btn:#e6eaf0;--user:#2a6f8f;--bot:#1f2a33;
+    --mark:rgba(60,80,100,.3);--last:rgba(90,160,200,.25);
+  }
+  /* 棋盘配色：按 body[data-board] 覆盖深浅格 */
+  body[data-board="ocean"]{--light:#e8e2d4;--dark:#7d94ab}
+  body[data-board="classic"]{--light:#eeeed2;--dark:#769656}
+  body[data-board="wood"]{--light:#e8cfa6;--dark:#a3764a}
+  body[data-board="ink"]{--light:#dcdcdc;--dark:#606060}
+  body[data-board="mint"]{--light:#eaf4ef;--dark:#9dc0ae}
+  body[data-board="purple"]{--light:#e6e0ee;--dark:#8a7aa8}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;margin:0}
   body{
     background:var(--bg);color:var(--text);
-    font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif;
+    font-family:var(--font,-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif);
     display:flex;flex-direction:column;overflow:hidden;
   }
   #rotate{
@@ -27,15 +67,60 @@
     background:var(--bg);z-index:50;font-size:15px;color:var(--dim);letter-spacing:.08em;
   }
   #app{display:none;flex:1;min-height:0}
+  @supports (height:100dvh){body.forced #app{height:100dvh}}
 
   /* 横屏：左棋盘右面板 */
   @media (orientation:landscape) and (min-width:640px){
     body.fine #rotate{display:none}
     body.fine #app{display:flex}
   }
+  /* 桌面模式（手机开了电脑版网站）：不管横竖，都按宽屏两栏排 */
+  @media (min-width:640px){
+    body.desktop-mode #rotate{display:none}
+    body.desktop-mode #app{display:flex}
+  }
   /* 竖屏也允许用，只是提示 */
   body.forced #rotate{display:none}
-  body.forced #app{display:flex;flex-direction:column}
+  body.forced #app{
+    display:flex;flex-direction:column;overflow:hidden;
+    overscroll-behavior:contain;height:100%;min-height:0;
+  }
+  /* 竖屏：棋盘固定占一小块，剩下的全给侧栏；聊天区自己滚，整页不动 */
+  body.forced #boardWrap{flex:0 0 auto;padding:8px 8px 0;overflow:hidden}
+  body.forced #board{
+    width:min(calc(100vw - 16px),calc(36vh * var(--bs)));
+    height:min(calc(100vw - 16px),calc(36vh * var(--bs)));
+    max-height:100%;max-width:100%;
+  }
+  body.forced #side{flex:1 1 auto;min-height:0;overflow:hidden}
+  body.forced #log{flex:1 1 auto;min-height:48px;max-height:none;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  body.forced #skin .opts button{padding:calc(7px*var(--ui)) calc(4px*var(--ui));font-size:var(--fs)}
+  body.forced #tools button{padding:calc(9px*var(--ui)) 0;font-size:calc(var(--fs) - 1px)}
+  body.forced #bar input{font-size:max(16px, calc(var(--fs) + 1px))}
+  body.forced #bar{
+    position:sticky;bottom:0;z-index:2;background:var(--panel);
+    padding-bottom:calc(8px + env(safe-area-inset-bottom));
+  }
+
+  /* 横屏：棋盘占左边，聊天和设置全挤到右边一列 */
+  @media (orientation:landscape){
+    body.forced #app{flex-direction:row;align-items:stretch}
+    body.forced #boardWrap{
+      flex:0 0 auto;padding:8px;overflow:hidden;
+      align-items:center;justify-content:center;
+    }
+    body.forced #board{
+      width:min(calc(min(calc(100vh - 16px), 58vw) * var(--bs)), calc(100vh - 16px));
+      height:min(calc(min(calc(100vh - 16px), 58vw) * var(--bs)), calc(100vh - 16px));
+      max-width:100%;max-height:100%;
+    }
+    body.forced #side{
+      flex:1 1 auto;min-width:0;border-top:none;
+      border-left:1px solid var(--line);
+    }
+    body.forced #log{min-height:32px}
+    body.forced #status{padding:8px 12px}
+  }
 
   #boardWrap{
     flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
@@ -43,80 +128,213 @@
   }
   #board{
     display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
-    width:min(100%,calc(100vh - 24px));aspect-ratio:1/1;max-height:100%;
-    border-radius:6px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.5);
+    width:min(100%,calc((100vh - 24px)*var(--bs)));aspect-ratio:1/1;max-height:100%;
+    border-radius:6px;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.4);
+  }
+  /* 棋盘阴影风格：按 body[data-shadow] 切换 */
+  body[data-shadow="flat"] #board{
+    box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.4);
+  }
+  body[data-shadow="soft"] #board{
+    box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 5px 14px rgba(0,0,0,.3);
+  }
+  body[data-shadow="float"] #board{
+    box-shadow:0 8px 30px rgba(0,0,0,.5);
+  }
+  body[data-shadow="none"] #board{
+    box-shadow:0 0 0 1px rgba(0,0,0,.45);
   }
   .sq{position:relative;display:flex;align-items:center;justify-content:center;
-      font-size:min(7vh,4.2vw);line-height:1;user-select:none;transition:background .12s}
+      font-size:calc(min(7vh,4.2vw) * var(--bs,1) * var(--ps,1));line-height:1;user-select:none;transition:background .12s}
+  button,input,select,textarea{font-family:inherit}
+  body[data-glyph="letter"] .sq>span{font-size:.84em}
+  body[data-glyph="hanzi"] .sq>span{font-size:.8em;font-weight:600}
   .sq.l{background:var(--light)}
   .sq.d{background:var(--dark)}
   .sq.sel{box-shadow:inset 0 0 0 3px var(--accent)}
-  .sq.last::after{content:"";position:absolute;inset:0;background:rgba(95,179,212,.22)}
-  .sq .dot{position:absolute;width:18%;height:18%;border-radius:50%;background:rgba(30,60,80,.45)}
-  .sq .ring{position:absolute;inset:6%;border:3px solid rgba(30,60,80,.45);border-radius:50%}
-  .w{color:#fbfaf6;text-shadow:0 1px 2px rgba(0,0,0,.55)}
-  .b{color:#131c26;text-shadow:0 1px 1px rgba(255,255,255,.25)}
+  .sq.last::after{content:"";position:absolute;inset:0;background:var(--last)}
+  .sq .dot{position:absolute;width:18%;height:18%;border-radius:50%;background:var(--mark)}
+  .sq .ring{position:absolute;inset:6%;border:3px solid var(--mark);border-radius:50%}
+  .sq span{font-family:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans",serif}
+  /* 棋子样式：按 body[data-piece] 切换 */
+  body[data-piece="solid"] .w{color:#fbfaf6;text-shadow:0 1px 2px rgba(0,0,0,.55)}
+  body[data-piece="solid"] .b{color:#131c26;text-shadow:0 1px 1px rgba(255,255,255,.25)}
+  body[data-piece="hollow"] .w{color:#2b2b2b;text-shadow:none}
+  body[data-piece="hollow"] .b{color:#0b1118;text-shadow:0 1px 1px rgba(255,255,255,.2)}
+  body[data-piece="emboss"] .w{color:#ffffff;text-shadow:0 2px 3px rgba(0,0,0,.7),0 0 1px rgba(0,0,0,.5)}
+  body[data-piece="emboss"] .b{color:#1c2733;text-shadow:0 1px 0 rgba(255,255,255,.45),0 2px 3px rgba(0,0,0,.45)}
   .coord{position:absolute;font-size:9px;opacity:.5}
 
   #side{
+    position:relative;
     width:clamp(240px,32vw,380px);display:flex;flex-direction:column;
-    background:var(--panel);border-left:1px solid var(--line);min-height:0;
+    background:var(--panel);border-left:1px solid var(--line);
+    min-height:0;overflow:hidden;
   }
-  body.forced #side{width:auto;flex:1;border-left:none;border-top:1px solid var(--line)}
+  body.forced #side{width:auto;flex:1 1 auto;min-height:0;overflow:hidden;border-left:none;border-top:1px solid var(--line)}
+  /* 矮屏横屏（手机）：侧栏整体可滚，否则外观面板被挤出去又滑不到 */
+  @media (orientation:landscape) and (max-height:560px){
+    body.fine #side{overflow:hidden}
+    body.fine #log{flex:1 1 auto;min-height:0}
+    body.fine #boardWrap{padding:4px}
+  }
   #status{
-    padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;
+    padding:10px 14px;border-bottom:1px solid var(--line);font-size:var(--fs);
     display:flex;justify-content:space-between;align-items:center;color:var(--dim);
   }
   #status b{color:var(--accent);font-weight:600}
   #log{
-    flex:1;overflow-y:auto;padding:10px 14px;font-size:13px;line-height:1.7;min-height:0;
+    flex:1;overflow-y:auto;padding:10px 14px;font-size:var(--fs);line-height:1.7;min-height:0;
   }
   #log .m{margin-bottom:6px;word-break:break-word}
-  #log .m.user{color:#9fd8ef}
-  #log .m.bot{color:#e6eef6}
-  #log .m.sys{color:var(--dim);font-size:12px}
-  #log .m .who{font-size:11px;opacity:.55;margin-right:6px}
+  #log .m.user{color:var(--user)}
+  #log .m.bot{color:var(--bot)}
+  #log .m.sys{color:var(--dim);font-size:calc(var(--fs) - 1px)}
+  #log .m .who{font-size:calc(var(--fs) - 2px);opacity:.55;margin-right:6px}
 
-  #bar{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+  #bar{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--line);align-items:stretch;flex:0 0 auto}
+  #bar button{min-height:calc(var(--fs)*2.6)}
   #bar input{
-    flex:1;background:#0b1420;border:1px solid var(--line);border-radius:8px;
-    color:var(--text);padding:9px 11px;font-size:14px;outline:none;min-width:0;
+    flex:1;background:var(--input);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);padding:calc(9px*var(--ui)) calc(11px*var(--ui));
+    font-size:max(16px, calc(var(--fs) + 1px));outline:none;min-width:0;
   }
   #bar input:focus{border-color:var(--accent)}
   #bar button{
-    background:#1b2d3f;border:1px solid var(--line);color:var(--text);
-    border-radius:8px;padding:0 13px;font-size:13px;cursor:pointer;
+    background:var(--btn);border:1px solid var(--line);color:var(--text);
+    border-radius:8px;padding:0 calc(13px*var(--ui));font-size:var(--fs);cursor:pointer;
   }
-  #bar button:active{background:#24405a}
-  #tools{display:flex;gap:6px;padding:0 12px 8px}
+  #bar button:active{filter:brightness(1.25)}
+  #tools{display:flex;gap:6px;padding:0 12px 8px;flex-wrap:wrap;flex:0 0 auto}
+  #newPick{flex:0 0 auto}
+  #tools button.on{color:var(--text);border-color:var(--accent)}
+  /* 外观面板：点开就把整个聊天栏铺满，棋盘不动，关掉才回去 */
+  #skin{
+    position:absolute;inset:0;z-index:20;
+    display:flex;flex-direction:column;gap:12px;
+    padding:0 14px calc(24px + env(safe-area-inset-bottom));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:var(--panel);border:none;
+    font-size:var(--fs);color:var(--dim);
+  }
+  /* 标题条：面板滚动时钉在顶上，不跟着滚走 */
+  #skin .head{
+    display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:2;
+    margin:0 -14px;padding:14px 14px;
+    background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  #skin .head b{color:var(--text);font-weight:600;font-size:calc(var(--fs) + 2px);letter-spacing:.5px}
+  #skin .head button{
+    background:transparent;border:1px solid var(--line);color:var(--dim);
+    border-radius:8px;padding:6px 12px;font-size:calc(var(--fs) - 1px);cursor:pointer;
+  }
+  #skin[hidden]{display:none}
+  /* 每行：左边标签窄一点，右边选项平均摊开占满整行，不再挤成一小撮 */
+  #skin .row{display:flex;align-items:center;gap:6px;min-width:0}
+  #skin .row>span{flex:0 0 auto;width:auto;min-width:calc(var(--fs)*2.4);opacity:.9;white-space:nowrap}
+  #skin .opts{
+    flex:1 1 auto;min-width:0;display:grid;gap:5px;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  #skin .opts button{
+    display:flex;align-items:center;justify-content:center;gap:4px;
+    background:transparent;cursor:pointer;min-width:0;white-space:nowrap;
+    border:1px solid var(--line);color:var(--dim);border-radius:6px;
+    padding:calc(9px*var(--ui)) calc(4px*var(--ui));font-size:var(--fs);
+  }
+  #skin .opts button.on{color:var(--text);border-color:var(--accent);background:var(--btn)}
+  #skin .sw{display:flex;width:12px;height:12px;border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+  #skin .sw i{width:50%;height:100%}
+  #skin .rng{
+    flex:1 1 auto;min-width:calc(var(--fs)*3.5);accent-color:var(--accent);height:calc(26px*var(--ui));
+    background:transparent;
+  }
+  #skin .val{flex:none;width:calc(var(--fs)*3.2);text-align:right;color:var(--text);opacity:.85}
   #tools button{
     flex:1;background:transparent;border:1px solid var(--line);color:var(--dim);
-    border-radius:7px;padding:7px 0;font-size:12px;cursor:pointer;
+    border-radius:7px;padding:calc(7px*var(--ui)) 0;font-size:calc(var(--fs) - 1px);cursor:pointer;
   }
   #tools button:active{color:var(--text);border-color:var(--accent)}
+  #newPick{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 12px 8px;
+    padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  }
+  #newPick[hidden]{display:none}
+  #newPick button{
+    background:var(--btn);border:1px solid var(--line);color:var(--dim);
+    border-radius:7px;padding:calc(8px*var(--ui)) 0;
+    font-size:calc(var(--fs) - 1px);cursor:pointer;
+  }
+  #newPick button:active{color:var(--text);border-color:var(--accent)}
 </style>
 </head>
-<body>
-<div id="rotate">横过来用<span style="opacity:.4">（点一下强制竖屏也行）</span></div>
+<body data-bg="deep" data-board="ocean" data-piece="solid" data-shadow="flat">
+<div id="rotate"><span data-i18n="rotate">横过来用</span><span style="opacity:.4" data-i18n="rotateHint">（点一下强制竖屏也行）</span></div>
 <div id="app">
   <div id="boardWrap"><div id="board"></div></div>
   <div id="side">
-    <div id="status"><span id="turnText">连接中…</span><span id="sideText"></span></div>
+    <div id="status"><span id="turnText">连接中…</span><span><i id="envTag" style="font-style:normal;opacity:.5;font-size:11px;margin-right:8px"></i><span id="sideText"></span></span></div>
     <div id="log"></div>
+    <div id="skin" hidden>
+      <div class="head"><b data-i18n="skin">外观</b><button id="skinClose" data-i18n="close">收起</button></div>
+      <div class="row"><span data-i18n="bg">背景</span><div class="opts" id="optBg"></div></div>
+      <div class="row"><span data-i18n="board">棋盘</span><div class="opts" id="optBoard"></div></div>
+      <div class="row"><span data-i18n="piece">棋子</span><div class="opts" id="optPiece"></div></div>
+      <div class="row"><span data-i18n="glyph">字符</span><div class="opts" id="optGlyph"></div></div>
+      <div class="row"><span data-i18n="shadow">阴影</span><div class="opts" id="optShadow"></div></div>
+      <div class="row"><span data-i18n="fs">字号</span><input type="range" class="rng" id="fsRange" min="11" max="24" step="1"><b class="val" id="fsVal"></b></div>
+      <div class="row"><span data-i18n="ui">控件</span><input type="range" class="rng" id="uiRange" min="70" max="170" step="5"><b class="val" id="uiVal"></b></div>
+      <div class="row"><span data-i18n="bs">棋盘大小</span><input type="range" class="rng" id="bsRange" min="70" max="140" step="5"><b class="val" id="bsVal"></b></div>
+      <div class="row"><span data-i18n="ps">棋子大小</span><input type="range" class="rng" id="psRange" min="65" max="145" step="5"><b class="val" id="psVal"></b></div>
+      <div class="row"><span data-i18n="lang">语言</span><div class="opts" id="optLang"></div></div>
+      <div class="row"><span data-i18n="font">字体</span><div class="opts" id="optFont"></div></div>
+    </div>
     <div id="tools">
-      <button id="btnNew">重开</button>
-      <button id="btnUndo">悔棋</button>
-      <button id="btnFlip">翻面</button>
-      <button id="btnResign">认输</button>
+      <button id="btnNew" data-i18n="newGame">重开</button>
+      <button id="btnUndo" data-i18n="undo">悔棋</button>
+      <button id="btnFlip" data-i18n="flip">翻面</button>
+      <button id="btnResign" data-i18n="resign">认输</button>
+      <button id="btnSkin" data-i18n="skin">外观</button>
+    </div>
+    <div id="newPick" hidden>
+      <button data-side="white" data-i18n="white">执白</button>
+      <button data-side="black" data-i18n="black">执黑</button>
+      <button data-side="random" data-i18n="random">随机</button>
     </div>
     <div id="bar">
-      <input id="input" placeholder="说点什么…" autocomplete="off">
-      <button id="send">发</button>
+      <input id="input" data-i18n-ph="ph" placeholder="说点什么…" autocomplete="off">
+      <button id="send" data-i18n="send">发</button>
     </div>
   </div>
 </div>
 <script>
-const GLYPH={p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"};
+/* ---------- 多语言 ---------- */
+const I18N={
+  zh:{skin:"外观",close:"收起",bg:"背景",board:"棋盘",piece:"棋子",glyph:"字符",shadow:"阴影",
+      fs:"字号",ui:"控件",bs:"棋盘大小",ps:"棋子大小",lang:"语言",font:"字体",
+      newGame:"重开",undo:"悔棋",flip:"翻面",resign:"认输",white:"执白",black:"执黑",random:"随机",
+      send:"发",ph:"说点什么…",connecting:"连接中…",rotate:"横过来用",rotateHint:"（点一下强制竖屏也行）",
+      desktop:"桌面版",mobile:"手机版",pc:"电脑",noConn:"连不上",youTurn:"轮到",you:"你",whale:"鲸",
+      waitTurn:"等",youPlayWhite:"你执白",youPlayBlack:"你执黑",confirmResign:"真认输？",
+      failMove:"没送出去",failSay:"这句没发出去",failNew:"没开成"},
+  en:{skin:"Appearance",close:"Close",bg:"Background",board:"Board",piece:"Pieces",glyph:"Glyphs",shadow:"Shadow",
+      fs:"Text size",ui:"Controls",bs:"Board size",ps:"Piece size",lang:"Language",font:"Font",
+      newGame:"New",undo:"Undo",flip:"Flip",resign:"Resign",white:"White",black:"Black",random:"Random",
+      send:"Send",ph:"Say something…",connecting:"Connecting…",rotate:"Rotate device",rotateHint:"(tap to force portrait)",
+      desktop:"Desktop mode",mobile:"Mobile",pc:"Desktop",noConn:"Offline",youTurn:"",you:"You",whale:"Whale",
+      waitTurn:"",youPlayWhite:"You are White",youPlayBlack:"You are Black",confirmResign:"Resign for real?",
+      failMove:"Move not sent",failSay:"Message not sent",failNew:"Could not start"},
+};
+function L(){ try{ return skin.lang||"zh"; }catch(e){ return "zh"; } }
+function T(k){ const d=I18N[L()]||I18N.zh; return d[k]!==undefined?d[k]:I18N.zh[k]; }
+function NL(o){ const l=L(); return (o.name&&(o.name[l]||o.name.zh))||o.id||""; }
+
+const GLYPH_SOLID={p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"};
+const GLYPH_HOLLOW={p:"♙",n:"♘",b:"♗",r:"♖",q:"♕",k:"♔"};
+const GLYPH_LETTER={p:"P",n:"N",b:"B",r:"R",q:"Q",k:"K"};
+const GLYPH_HANZI={p:"兵",n:"马",b:"象",r:"车",q:"后",k:"王"};
 const FILES="abcdefgh";
 let state=null, sel=null, flipped=false, seq=0, lastRenderedFen="";
 
@@ -125,8 +343,41 @@ const logEl=document.getElementById("log");
 const turnText=document.getElementById("turnText");
 const sideText=document.getElementById("sideText");
 
-document.getElementById("rotate").onclick=()=>document.body.classList.add("forced");
-if(window.innerWidth>window.innerHeight) document.body.classList.add("fine");
+/* ---------- 运行环境判断 ---------- */
+/* 能拿到的只有间接信号：UA 里有没有手机标记、有没有触摸点、指针是不是粗的。
+   安卓/iOS 的“桌面版网站”会把 UA 换成桌面 UA，但触摸和粗指针这两样藏不住。 */
+function detectEnv(){
+  const ua=navigator.userAgent||"";
+  const touch=(navigator.maxTouchPoints||0)>0 || ("ontouchstart" in window);
+  const coarse=!!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
+  const mobileUA=/Android|iPhone|iPod|iPad|Windows Phone|Mobile/i.test(ua);
+  // 有触摸但 UA 是桌面 → 大概率是手机开了桌面模式（PC 触屏本会误判，下面再用指针兜一下）
+  const desktopMode = touch && !mobileUA;
+  return {touch, coarse, mobileUA, desktopMode};
+}
+const rotateEl=document.getElementById("rotate");
+function applyEnv(){
+  const e=detectEnv();
+  const body=document.body;
+  body.classList.toggle("desktop-mode", e.desktopMode);
+  body.dataset.env = e.desktopMode ? "desktop-mode" : (e.mobileUA ? "mobile" : "desktop");
+  const tag=document.getElementById("envTag");
+  if(tag) tag.textContent = T(e.desktopMode ? "desktop" : (e.mobileUA ? "mobile" : "pc"));
+  if(e.desktopMode){
+    // 桌面模式：直接按宽屏两栏走，别再弹“横过来用”
+    body.classList.remove("forced");
+    body.classList.add("fine");
+    rotateEl.style.display="none";
+    return;
+  }
+  rotateEl.style.display="";
+  if(body.classList.contains("forced")) return;
+  if(!e.mobileUA && window.innerWidth>=640) body.classList.add("fine");
+}
+applyEnv();
+window.addEventListener("resize",()=>{ if(!document.body.classList.contains("forced")) applyEnv(); });
+window.addEventListener("orientationchange",()=>setTimeout(()=>{ if(!document.body.classList.contains("forced")) applyEnv(); },200));
+rotateEl.onclick=()=>{ rotateEl.style.display="none"; document.body.classList.add("forced"); };
 
 function sqName(r,c){ // r,c 为屏幕行列
   const rank = flipped ? r : 7-r;
@@ -150,7 +401,10 @@ function render(){
       let inner="";
       if(piece){
         const isW=piece===piece.toUpperCase();
-        inner=`<span class="${isW?'w':'b'}">${GLYPH[piece.toLowerCase()]}</span>`;
+        const g = skin.glyph==="letter" ? GLYPH_LETTER
+                : skin.glyph==="hanzi"  ? GLYPH_HANZI
+                : (skin.piece==="hollow" ? GLYPH_HOLLOW : GLYPH_SOLID);
+        inner=`<span class="${isW?'w':'b'}">${g[piece.toLowerCase()]}</span>`;
       }else if(sel && state.legal[sel] && state.legal[sel].includes(name)){
         inner=`<span class="dot"></span>`;
       }else if(sel && name===sel){
@@ -164,12 +418,17 @@ function render(){
   }
   boardEl.innerHTML=cells.join("");
 
-  const whose = state.turn==="white"?"白方":"黑方";
+  const whose = skin.lang==="en" ? (state.turn==="white"?"White":"Black")
+                                  : (state.turn==="white"?"白方":"黑方");
   const mine = state.player_side===state.turn;
+  const en = skin.lang==="en";
   if(state.result){ turnText.innerHTML=`<b>${state.result}</b>`; }
+  else if(mine && en){ turnText.innerHTML=`Your move <b>(${whose})</b>`; }
+  else if(!mine && en){ turnText.innerHTML=`Waiting for <b>Whale</b> (${whose})`; }
   else if(mine){ turnText.innerHTML=`轮到<b>你</b>（${whose}）`; }
   else { turnText.innerHTML=`等<b>鲸</b>走（${whose}）`; }
-  sideText.textContent=`你执${state.player_side==='white'?'白':'黑'}`;
+  sideText.textContent=en ? T(state.player_side==='white'?"youPlayWhite":"youPlayBlack")
+                         : `你执${state.player_side==='white'?'白':'黑'}`;
   lastRenderedFen=state.fen;
 }
 
@@ -178,7 +437,7 @@ async function refresh(){
     const r=await fetch("/api/state");
     state=await r.json();
     render();
-  }catch(e){ turnText.textContent="连不上"; }
+  }catch(e){ turnText.textContent=T("noConn"); }
 }
 
 boardEl.onclick=(ev)=>{
@@ -203,42 +462,78 @@ async function sendMove(move){
     const d=await r.json();
     state=d.state; sel=null; render();
     if(!d.ok) flash(d.msg);
-  }catch(e){ flash("没送出去"); }
+  }catch(e){ flash(T("failMove")); }
+}
+
+/* 聊天区自己滚动：贴底时自动跟，往上翻看历史就不抢位置 */
+let stickBottom=true;
+logEl.addEventListener("scroll",()=>{
+  stickBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
+});
+function toBottom(force){
+  if(!force && !stickBottom) return;
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ logEl.scrollTop=logEl.scrollHeight; }); });
 }
 
 function flash(text){
   const d=document.createElement("div");
   d.className="m sys"; d.textContent=text; logEl.appendChild(d);
-  logEl.scrollTop=logEl.scrollHeight;
+  stickBottom=true; toBottom(true);
 }
 
+const seenMsgIds=new Set();
+const recentMsgs=[];   // 双保险：id 不同但内容一模一样、又挨得很近的，多半是同一条推了两次
+function dupByText(m){
+  const now=Date.now();
+  for(let i=recentMsgs.length-1;i>=0;i--){
+    const r=recentMsgs[i];
+    if(now-r.t>6000) break;
+    if(r.role===m.role && r.text===m.text) return true;
+  }
+  recentMsgs.push({role:m.role, text:m.text, t:now});
+  if(recentMsgs.length>40) recentMsgs.shift();
+  return false;
+}
 function addMsg(m){
+  if(!m) return;
+  if(typeof m.id==="number"){
+    if(seenMsgIds.has(m.id)) return;
+    seenMsgIds.add(m.id);
+  }
+  if(dupByText(m)) return;
   const d=document.createElement("div");
   d.className="m "+(m.role==="user"?"user":m.role==="bot"?"bot":"sys");
   if(m.role==="bot"||m.role==="user"){
     const w=document.createElement("span");
-    w.className="who"; w.textContent=m.role==="bot"?"鲸":"你";
+    w.className="who"; w.textContent=m.role==="bot"?T("whale"):T("you");
     d.appendChild(w);
   }
   d.appendChild(document.createTextNode(m.text));
   logEl.appendChild(d);
-  logEl.scrollTop=logEl.scrollHeight;
+  toBottom(false);
 }
 
+let polling=false;
 async function pollEvents(){
+  if(polling) return;      // 网络慢时别让两次轮询叠在一起重复画
+  polling=true;
   try{
     const r=await fetch(`/api/events?since=${seq}`);
     const d=await r.json();
     // 服务端重启后序号会从头来，本地 seq 偏大就会一直拉到空
     if(typeof d.seq==="number" && d.seq<seq){
+      // 服务端重启过：补拉全量。id 从 1 重新发，所以本地去重表要一起清，否则会误判成旧的把新消息吞掉
       seq=0;
+      seenMsgIds.clear(); recentMsgs.length=0;
+      logEl.innerHTML="";
       const r2=await fetch("/api/events?since=0");
       const d2=await r2.json();
       (d2.messages||[]).forEach(m=>{ addMsg(m); seq=Math.max(seq,m.id); });
+      stickBottom=true; toBottom(true);
       return;
     }
     (d.messages||[]).forEach(m=>{ addMsg(m); seq=Math.max(seq,m.id); });
-  }catch(e){}
+  }catch(e){}finally{ polling=false; }
 }
 
 const input=document.getElementById("input");
@@ -248,13 +543,24 @@ async function sendChat(){
   input.value="";
   try{
     await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
-  }catch(e){ flash("这句没发出去"); }
+  }catch(e){ flash(T("failSay")); }
 }
 document.getElementById("send").onclick=sendChat;
 input.addEventListener("keydown",e=>{ if(e.key==="Enter") sendChat(); });
 
-document.getElementById("btnNew").onclick=async()=>{
-  await fetch("/api/new",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({side:"white"})});
+const newPick=document.getElementById("newPick");
+document.getElementById("btnNew").onclick=()=>{
+  newPick.hidden=!newPick.hidden;
+};
+newPick.onclick=async e=>{
+  const b=e.target.closest("button[data-side]"); if(!b) return;
+  let side=b.dataset.side;
+  if(side==="random") side=Math.random()<0.5?"white":"black";
+  newPick.hidden=true;
+  try{
+    await fetch("/api/new",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({side})});
+  }catch(err){ flash(T("failNew")); }
+  flipped = (side==="black");   // 执黑时把自己这侧翻到下面
   sel=null; await refresh();
 };
 document.getElementById("btnUndo").onclick=async()=>{
@@ -262,10 +568,195 @@ document.getElementById("btnUndo").onclick=async()=>{
 };
 document.getElementById("btnFlip").onclick=()=>{ flipped=!flipped; render(); };
 document.getElementById("btnResign").onclick=async()=>{
-  if(!confirm("真认输？")) return;
+  if(!confirm(T("confirmResign"))) return;
   await fetch("/api/resign",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({})});
   await refresh();
 };
+
+/* ---------- 外观设置 ---------- */
+const BGS=[
+  {id:"deep",name:{zh:"深海",en:"Deep sea"}},
+  {id:"black",name:{zh:"墨黑",en:"Ink black"}},
+  {id:"night",name:{zh:"星夜",en:"Starry"}},
+  {id:"moss",name:{zh:"苔绿",en:"Moss"}},
+  {id:"paper",name:{zh:"日间",en:"Daylight"}},
+];
+const BOARDS=[
+  {id:"ocean",name:{zh:"海蓝",en:"Ocean"}},
+  {id:"classic",name:{zh:"经典绿",en:"Classic"}},
+  {id:"wood",name:{zh:"木色",en:"Wood"}},
+  {id:"ink",name:{zh:"素灰",en:"Ash"}},
+  {id:"mint",name:{zh:"薄荷",en:"Mint"}},
+  {id:"purple",name:{zh:"雾紫",en:"Haze"}},
+];
+const PIECES=[
+  {id:"solid",name:{zh:"实心",en:"Solid"}},
+  {id:"hollow",name:{zh:"空心",en:"Outline"}},
+  {id:"emboss",name:{zh:"浮雕",en:"Emboss"}},
+];
+const GSETS=[
+  {id:"symbol",name:{zh:"符号",en:"Symbols"}},
+  {id:"letter",name:{zh:"字母",en:"Letters"}},
+  {id:"hanzi",name:{zh:"汉字",en:"Hanzi"}},
+];
+const SHADOWS=[
+  {id:"flat",name:{zh:"贴地",en:"Flat"}},
+  {id:"soft",name:{zh:"微浮",en:"Soft"}},
+  {id:"float",name:{zh:"浮动",en:"Float"}},
+  {id:"none",name:{zh:"无",en:"None"}},
+];
+const SWATCH={
+  ocean:["#e8e2d4","#7d94ab"], classic:["#eeeed2","#769656"], wood:["#e8cfa6","#a3764a"],
+  ink:["#dcdcdc","#606060"], mint:["#eaf4ef","#9dc0ae"], purple:["#e6e0ee","#8a7aa8"],
+};
+const BSWATCH={
+  deep:["#0d1520","#22344a"], black:["#050607","#1b1f25"], night:["#120f1e","#2c2547"],
+  moss:["#0a1411","#1e332b"], paper:["#eef0f3","#c9d2de"],
+};
+const LANGS=[
+  {id:"zh",name:{zh:"中文",en:"中文"}},
+  {id:"en",name:{zh:"English",en:"English"}},
+];
+const FONTS=[
+  {id:"system",name:{zh:"系统",en:"System"},css:'-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif'},
+  {id:"song",name:{zh:"宋体",en:"Serif"},css:'Georgia,"Songti SC","Noto Serif CJK SC",serif'},
+  {id:"kai",name:{zh:"楷体",en:"Kai"},css:'"Kaiti SC",STKaiti,"KaiTi","楷体",serif'},
+  {id:"round",name:{zh:"圆体",en:"Rounded"},css:'"HarmonyOS Sans","PingFang SC","Quicksand",system-ui,sans-serif'},
+  {id:"mono",name:{zh:"等宽",en:"Mono"},css:'ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK SC",monospace'},
+];
+const SKIN_KEY="chess.skin";
+let skin={bg:"deep",board:"ocean",piece:"solid",glyph:"symbol",shadow:"flat",lang:"zh",font:"system"};
+try{ Object.assign(skin, JSON.parse(localStorage.getItem(SKIN_KEY)||"{}")); }catch(e){}
+if(!BGS.some(b=>b.id===skin.bg)) skin.bg="deep";
+if(!BOARDS.some(b=>b.id===skin.board)) skin.board="ocean";
+if(!PIECES.some(p=>p.id===skin.piece)) skin.piece="solid";
+if(!SHADOWS.some(s=>s.id===skin.shadow)) skin.shadow="flat";
+if(!GSETS.some(g=>g.id===skin.glyph)) skin.glyph="symbol";
+if(!LANGS.some(l=>l.id===skin.lang)) skin.lang="zh";
+if(!FONTS.some(f=>f.id===skin.font)) skin.font="system";
+
+function buildSkin(){
+  document.getElementById("optBg").innerHTML=BGS.map(g=>{
+    const s=BSWATCH[g.id]||["#111","#333"];
+    return `<button data-bg="${g.id}" class="${skin.bg===g.id?'on':''}">`
+      +`<span class="sw"><i style="background:${s[0]}"></i><i style="background:${s[1]}"></i></span>${NL(g)}</button>`;
+  }).join("");
+  document.getElementById("optBoard").innerHTML=BOARDS.map(b=>{
+    const s=SWATCH[b.id]||["#eee","#888"];
+    return `<button data-board="${b.id}" class="${skin.board===b.id?'on':''}">`
+      +`<span class="sw"><i style="background:${s[0]}"></i><i style="background:${s[1]}"></i></span>${NL(b)}</button>`;
+  }).join("");
+  document.getElementById("optPiece").innerHTML=PIECES.map(p=>
+    `<button data-piece="${p.id}" class="${skin.piece===p.id?'on':''}">${NL(p)}</button>`
+  ).join("");
+  document.getElementById("optGlyph").innerHTML=GSETS.map(g=>
+    `<button data-glyph="${g.id}" class="${skin.glyph===g.id?'on':''}">${NL(g)}</button>`
+  ).join("");
+  document.getElementById("optLang").innerHTML=LANGS.map(l=>
+    `<button data-lang="${l.id}" class="${skin.lang===l.id?'on':''}">${NL(l)}</button>`
+  ).join("");
+  document.getElementById("optFont").innerHTML=FONTS.map(f=>
+    `<button data-font="${f.id}" class="${skin.font===f.id?'on':''}" style="font-family:${f.css}">${NL(f)}</button>`
+  ).join("");
+  document.getElementById("optShadow").innerHTML=SHADOWS.map(s=>
+    `<button data-shadow="${s.id}" class="${skin.shadow===s.id?'on':''}">${NL(s)}</button>`
+  ).join("");
+}
+function applyLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    const k=el.dataset.i18n, v=T(k); if(v) el.textContent=v;
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{
+    el.placeholder=T(el.dataset.i18nPh);
+  });
+}
+function applySkin(){
+  document.body.dataset.bg=skin.bg;
+  document.body.dataset.board=skin.board;
+  document.body.dataset.piece=skin.piece;
+  document.body.dataset.shadow=skin.shadow;
+  document.body.dataset.glyph=skin.glyph;
+  document.body.dataset.lang=skin.lang;
+  const f=FONTS.find(x=>x.id===skin.font)||FONTS[0];
+  document.documentElement.style.setProperty("--font", f.css);
+  document.documentElement.lang = skin.lang==="en" ? "en" : "zh-CN";
+  applyLang();
+  lastRenderedFen="";
+  try{ localStorage.setItem(SKIN_KEY, JSON.stringify(skin)); }catch(e){}
+  buildSkin(); render();
+}
+document.getElementById("optBg").onclick=e=>{
+  const b=e.target.closest("button[data-bg]"); if(!b) return;
+  skin.bg=b.dataset.bg; applySkin();
+};
+document.getElementById("optBoard").onclick=e=>{
+  const b=e.target.closest("button[data-board]"); if(!b) return;
+  skin.board=b.dataset.board; applySkin();
+};
+document.getElementById("optPiece").onclick=e=>{
+  const b=e.target.closest("button[data-piece]"); if(!b) return;
+  skin.piece=b.dataset.piece; applySkin();
+};
+document.getElementById("optGlyph").onclick=e=>{
+  const b=e.target.closest("button[data-glyph]"); if(!b) return;
+  skin.glyph=b.dataset.glyph; applySkin();
+};
+document.getElementById("optLang").onclick=e=>{
+  const b=e.target.closest("button[data-lang]"); if(!b) return;
+  skin.lang=b.dataset.lang; applySkin();
+};
+document.getElementById("optFont").onclick=e=>{
+  const b=e.target.closest("button[data-font]"); if(!b) return;
+  skin.font=b.dataset.font; applySkin();
+};
+document.getElementById("optShadow").onclick=e=>{
+  const b=e.target.closest("button[data-shadow]"); if(!b) return;
+  skin.shadow=b.dataset.shadow; applySkin();
+};
+const skinPanel=document.getElementById("skin");
+function setSkin(open){
+  skinPanel.hidden=!open;
+  document.getElementById("btnSkin").classList.toggle("on", open);
+}
+document.getElementById("btnSkin").onclick=()=>setSkin(skinPanel.hidden);
+document.getElementById("skinClose").onclick=()=>setSkin(false);
+applySkin();
+
+/* ---------- 显示大小 ---------- */
+const VIEW_KEY="chess.view";
+let view={fs:13, ui:1, bs:1, ps:1};
+try{ Object.assign(view, JSON.parse(localStorage.getItem(VIEW_KEY)||"{}")); }catch(e){}
+view.fs=Math.min(24,Math.max(11, Number(view.fs)||13));
+view.ui=Math.min(1.7,Math.max(0.7, Number(view.ui)||1));
+view.bs=Math.min(1.4,Math.max(0.7, Number(view.bs)||1));
+view.ps=Math.min(1.45,Math.max(0.65, Number(view.ps)||1));
+
+const fsRange=document.getElementById("fsRange");
+const uiRange=document.getElementById("uiRange");
+const bsRange=document.getElementById("bsRange");
+const psRange=document.getElementById("psRange");
+const bsVal=document.getElementById("bsVal");
+const psVal=document.getElementById("psVal");
+const fsVal=document.getElementById("fsVal");
+const uiVal=document.getElementById("uiVal");
+
+function applyView(save){
+  const root=document.documentElement.style;
+  root.setProperty("--fs", view.fs+"px");
+  root.setProperty("--ui", String(view.ui));
+  root.setProperty("--bs", String(view.bs));
+  root.setProperty("--ps", String(view.ps));
+  fsRange.value=view.fs; fsVal.textContent=view.fs+"px";
+  uiRange.value=Math.round(view.ui*100); uiVal.textContent=Math.round(view.ui*100)+"%";
+  bsRange.value=Math.round(view.bs*100); bsVal.textContent=Math.round(view.bs*100)+"%";
+  psRange.value=Math.round(view.ps*100); psVal.textContent=Math.round(view.ps*100)+"%";
+  if(save){ try{ localStorage.setItem(VIEW_KEY, JSON.stringify(view)); }catch(e){} }
+}
+fsRange.addEventListener("input",()=>{ view.fs=+fsRange.value; applyView(true); });
+uiRange.addEventListener("input",()=>{ view.ui=+uiRange.value/100; applyView(true); });
+bsRange.addEventListener("input",()=>{ view.bs=+bsRange.value/100; applyView(true); });
+psRange.addEventListener("input",()=>{ view.ps=+psRange.value/100; applyView(true); });
+applyView(false);
 
 refresh();
 setInterval(refresh,1500);

@@ -31,12 +31,14 @@ class ChessWebServer:
         port: int,
         on_chat: Callable[[str], Awaitable[None]] | None = None,
         on_move: Callable[[str, str], Awaitable[None]] | None = None,
+        on_new: Callable[[str], Awaitable[None]] | None = None,
     ) -> None:
         self.game = game
         self.host = host
         self.port = port
         self.on_chat = on_chat
         self.on_move = on_move
+        self.on_new = on_new
         self._runner: web.AppRunner | None = None
         self._msg_seq = 0
 
@@ -55,7 +57,12 @@ class ChessWebServer:
             html = _load_static("index.html")
         except OSError:
             return web.Response(text="页面文件丢了，看看 web/index.html 还在不在", status=500)
-        return web.Response(text=html, content_type="text/html", charset="utf-8")
+        return web.Response(
+            text=html,
+            content_type="text/html",
+            charset="utf-8",
+            headers={"Cache-Control": "no-store, must-revalidate"},
+        )
 
     async def _static(self, request: web.Request) -> web.Response:
         name = request.match_info.get("name", "")
@@ -105,8 +112,15 @@ class ChessWebServer:
     async def _new(self, request: web.Request) -> web.Response:
         data = await request.json() if request.can_read_body else {}
         side = data.get("side", "white")
+        if side not in ("white", "black"):
+            side = "white"
         self.game.reset(player_side=side)
-        self.push_message("system", "新开一局，你先手" if side == "white" else "新开一局，你先手（我执白）")
+        if side == "white":
+            self.push_message("system", "新开一局，你执白，先走")
+        else:
+            self.push_message("system", "新开一局，你执黑，我先走")
+            if self.on_new:
+                asyncio.create_task(self.on_new(side))
         return web.json_response({"ok": True, "state": self.game.to_json()})
 
     async def _undo(self, request: web.Request) -> web.Response:

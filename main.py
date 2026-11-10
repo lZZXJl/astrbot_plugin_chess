@@ -41,7 +41,7 @@ def _lan_ip() -> str:
         return "127.0.0.1"
 
 
-@register("chess_board", "lzzxjl", "网页棋盘，横屏当输入法用", "0.2.0")
+@register("chess_board", "lzzxjl", "网页棋盘，横屏当输入法用，六套配色三种棋子可换", "0.2.2")
 class ChessPlugin(Star):
     def __init__(self, context: Context, config: dict | None = None):
         super().__init__(context)
@@ -77,6 +77,7 @@ class ChessPlugin(Star):
             port=port,
             on_chat=self._on_web_chat,
             on_move=self._on_web_move,
+            on_new=self._on_web_new,
         )
         try:
             await self.server.start()
@@ -141,6 +142,15 @@ class ChessPlugin(Star):
                 "轮到你了，先用 chess_state 看一眼局面再走，可以用 chess_move。"
             )
         await self._inject(text)
+
+    async def _on_web_new(self, side: str):
+        """网页那边开了新局，且新局是夏季执黑——那就该我先走。"""
+        self._touch_web()
+        if side == "black":
+            await self._inject(
+                "（网页棋盘）夏季刚开了一局，他执黑，你执白先走。"
+                "先用 chess_state 看一眼局面，再用 chess_move 走白方第一步。"
+            )
 
     async def _on_web_chat(self, text: str):
         self._touch_web()
