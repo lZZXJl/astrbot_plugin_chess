@@ -217,9 +217,10 @@ class ChessPlugin(Star):
             string: 局面摘要
         """
         g = self.game
+        whose = "夏季" if g.is_player_turn else "你"
         return (
             f"{g.render_text()}\n"
-            f"网页那边夏季执{g.player_side}，现在轮到{g.turn}。"
+            f"网页那边夏季执{g.player_side}，现在轮到{g.turn}，也就是说该{whose}走。"
         )
 
     @filter.llm_tool(name="chess_move")
@@ -232,7 +233,7 @@ class ChessPlugin(Star):
             string: 结果
         """
         self._touch_web()
-        ok, msg = self.game.try_move_any(move)
+        ok, msg = self.game.try_move_any(move, side=self.game.bot_side)
         if not ok:
             return f"这步没走成：{msg}"
         if self.server:

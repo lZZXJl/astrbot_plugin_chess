@@ -40,6 +40,15 @@ class ChessGame:
     def turn(self) -> str:
         return "white" if self.board.turn else "black"
 
+    @property
+    def bot_side(self) -> str:
+        """执棋的那一方永远和夏季对着来。"""
+        return "black" if self.player_side == "white" else "white"
+
+    @property
+    def is_player_turn(self) -> bool:
+        return self.turn == self.player_side
+
     def _after_change(self) -> None:
         if self.board.is_game_over(claim_draw=True):
             self.result = self._outcome_text()
@@ -68,10 +77,27 @@ class ChessGame:
         self._after_change()
         return san
 
-    def move_uci(self, uci: str, promotion: str | None = None) -> tuple[bool, str]:
+    def _side_guard(self, side: str | None) -> str | None:
+        """按“这步该谁走”卡一道，防止替对方动子。
+
+        只认白/黑两种取值，写错了就当没传，不因为参数瑕疵把棋下死。
+        """
+        if side not in ("white", "black"):
+            return None
+        if side != self.turn:
+            who = "白方" if self.turn == "white" else "黑方"
+            return f"现在轮到{who}走，这步不是那一方该动的"
+        return None
+
+    def move_uci(
+        self, uci: str, promotion: str | None = None, side: str | None = None
+    ) -> tuple[bool, str]:
         with self._lock:
             if self.result:
                 return False, "这局已经结束了"
+            guard = self._side_guard(side)
+            if guard:
+                return False, guard
             text = (uci or "").strip().lower().replace(" ", "")
             if len(text) == 4 and promotion:
                 text = text + promotion.lower()[:1]
@@ -84,10 +110,13 @@ class ChessGame:
             san = self._record(move)
             return True, san
 
-    def move_san(self, san: str) -> tuple[bool, str]:
+    def move_san(self, san: str, side: str | None = None) -> tuple[bool, str]:
         with self._lock:
             if self.result:
                 return False, "这局已经结束了"
+            guard = self._side_guard(side)
+            if guard:
+                return False, guard
             try:
                 move = self.board.parse_san((san or "").strip())
             except ValueError:
@@ -96,14 +125,14 @@ class ChessGame:
                 return False, "这步不合规则"
             return True, self._record(move)
 
-    def try_move_any(self, text: str) -> tuple[bool, str]:
+    def try_move_any(self, text: str, side: str | None = None) -> tuple[bool, str]:
         t = (text or "").strip()
         if not t:
             return False, "没收到走法"
-        ok, msg = self.move_uci(t)
+        ok, msg = self.move_uci(t, side=side)
         if ok:
             return ok, msg
-        return self.move_san(t)
+        return self.move_san(t, side=side)
 
     def undo(self, plies: int = 1) -> int:
         with self._lock:

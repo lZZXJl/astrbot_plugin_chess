@@ -86,10 +86,15 @@ class ChessWebServer:
         data = await request.json()
         move = str(data.get("move", ""))
         promo = data.get("promotion") or None
+        if self.game.is_player_turn is False:
+            # 轮到鲸走的时候，页面上不该能替它落子
+            msg = "现在轮到鲸走，这步先别动"
+            return web.json_response({"ok": False, "msg": msg, "state": self.game.to_json()})
+        side = self.game.player_side
         if len(move) == 4:
-            ok, msg = self.game.move_uci(move, promo)
+            ok, msg = self.game.move_uci(move, promo, side=side)
         else:
-            ok, msg = self.game.move_san(move)
+            ok, msg = self.game.move_san(move, side=side)
         if ok:
             self.push_message("system", f"你走了 {msg}")
             if self.on_move:
@@ -101,10 +106,11 @@ class ChessWebServer:
         data = await request.json()
         move = str(data.get("move", ""))
         promo = data.get("promotion") or None
+        side = self.game.bot_side
         if len(move) == 4:
-            ok, msg = self.game.move_uci(move, promo)
+            ok, msg = self.game.move_uci(move, promo, side=side)
         else:
-            ok, msg = self.game.move_san(move)
+            ok, msg = self.game.move_san(move, side=side)
         if ok and not data.get("silent"):
             self.push_message("bot", f"（我走了 {msg}）")
         return web.json_response({"ok": ok, "msg": msg, "state": self.game.to_json()})
@@ -128,8 +134,17 @@ class ChessWebServer:
         return web.json_response({"ok": bool(n), "n": n, "state": self.game.to_json()})
 
     async def _resign(self, request: web.Request) -> web.Response:
-        data = await request.json()
-        side = data.get("side", self.game.player_side)
+        data = await request.json() if request.can_read_body else {}
+        if self.game.result:
+            return web.json_response(
+                {"ok": False, "msg": "这局已经结束了", "state": self.game.to_json()}
+            )
+        # 认输的永远是网页这头的人，不能让它把鲸那一方算成认输方
+        side = self.game.player_side
+        if data.get("side") in ("white", "black") and data.get("side") != side:
+            return web.json_response(
+                {"ok": False, "msg": "你只能替自己认输", "state": self.game.to_json()}
+            )
         msg = self.game.resign(side)
         self.push_message("system", msg)
         return web.json_response({"ok": True, "msg": msg, "state": self.game.to_json()})

@@ -318,14 +318,14 @@ const I18N={
       send:"发",ph:"说点什么…",connecting:"连接中…",rotate:"横过来用",rotateHint:"（点一下强制竖屏也行）",
       desktop:"桌面版",mobile:"手机版",pc:"电脑",noConn:"连不上",youTurn:"轮到",you:"你",whale:"鲸",
       waitTurn:"等",youPlayWhite:"你执白",youPlayBlack:"你执黑",confirmResign:"真认输？",
-      failMove:"没送出去",failSay:"这句没发出去",failNew:"没开成"},
+      failMove:"没送出去",failSay:"这句没发出去",failNew:"没开成",notYourTurn:"这步轮不到你"},
   en:{skin:"Appearance",close:"Close",bg:"Background",board:"Board",piece:"Pieces",glyph:"Glyphs",shadow:"Shadow",
       fs:"Text size",ui:"Controls",bs:"Board size",ps:"Piece size",lang:"Language",font:"Font",
       newGame:"New",undo:"Undo",flip:"Flip",resign:"Resign",white:"White",black:"Black",random:"Random",
       send:"Send",ph:"Say something…",connecting:"Connecting…",rotate:"Rotate device",rotateHint:"(tap to force portrait)",
       desktop:"Desktop mode",mobile:"Mobile",pc:"Desktop",noConn:"Offline",youTurn:"",you:"You",whale:"Whale",
       waitTurn:"",youPlayWhite:"You are White",youPlayBlack:"You are Black",confirmResign:"Resign for real?",
-      failMove:"Move not sent",failSay:"Message not sent",failNew:"Could not start"},
+      failMove:"Move not sent",failSay:"Message not sent",failNew:"Could not start",notYourTurn:"Not your move"},
 };
 function L(){ try{ return skin.lang||"zh"; }catch(e){ return "zh"; } }
 function T(k){ const d=I18N[L()]||I18N.zh; return d[k]!==undefined?d[k]:I18N.zh[k]; }
@@ -443,6 +443,8 @@ async function refresh(){
 boardEl.onclick=(ev)=>{
   const el=ev.target.closest(".sq");
   if(!el||!state) return;
+  // 只有轮到自己这一方时才能落子，别把鲸的棋替它走了
+  if(state.player_side!==state.turn){ sel=null; render(); flash(T("notYourTurn")); return; }
   const name=el.dataset.sq;
   if(sel && state.legal[sel] && state.legal[sel].includes(name)){
     sendMove(sel+name);

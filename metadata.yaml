@@ -11,8 +11,9 @@ desc: |
   - 网页适配手机横屏，可当输入法用
   - 网页聊天区与 QQ 侧共用同一局棋和同一段对话
   - 选执黑开局时 AI 自动先走第一步，不用再催
+  - 认输只算网页这头的一方，双方都不能替对方落子
   - 附带 chess_state / chess_move / chess_new / chess_undo 四个 LLM 工具
-version: 0.2.2
+version: 0.2.3
 author: lZZXJl
 repo: "https://github.com/lZZXJl/astrbot_plugin_chess"
 support_platforms:
